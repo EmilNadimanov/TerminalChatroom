@@ -1,18 +1,26 @@
 import socket
 from threading import Thread
+import sys
 
 
 class Client:
-
-    def __init__(self, client_socket: socket.socket, server: str, port: int, payload=1024):
-        self.RUN = True  # переменная, которая прерывает процесс получения и отправки сообщений, будучи False
+    """
+    Класс для описания процесса взаимодействия клиента с сервером.
+    RUN         --- переменная, отвечающая за процесс получения и отправки сообщений. Прерывается его, будучи False.
+    SERVER_IP   --- IP-адрес сервера.
+    PORT        --- Порт, к которому нужно подключиться.
+    PAYLOAD     --- Объём пакета, передаваемого по TCP.
+    client      --- Сокет клиента, который и обслуживается в классе.
+    """
+    def __init__(self, client_socket: socket.socket, server_ip: str, port: int, payload=1024):
+        self.RUN = True
         self.client = client_socket
-        self.SERVER = server
+        self.SERVER_IP = server_ip
         self.PORT = port
         self.PAYLOAD = payload
 
     def client_run(self):
-        self.client.connect((self.SERVER, self.PORT))
+        self.client.connect((self.SERVER_IP, self.PORT))
 
         receive = Thread(target=self.receive_process, daemon=True)
         receive.start()
@@ -27,7 +35,7 @@ class Client:
         s = socket.socket()
         result = True
         try:
-            s.connect((self.SERVER, self.PORT))
+            s.connect((self.SERVER_IP, self.PORT))
         except ConnectionRefusedError:
             result = False
 
@@ -62,8 +70,12 @@ class Client:
 
 
 def main():
+    if len(sys.argv) != 3:
+        print("Launch as \"python client.py ip-address port-number\", e.g. \"python client.py 127.0.0.1 8080\"")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client = Client(s, server='127.0.0.1', port=13000)
+
+    ip_address, port_number = sys.argv[1], int(sys.argv[2])
+    client = Client(s, server_ip=ip_address, port=port_number)
     client.client_run()
 
 

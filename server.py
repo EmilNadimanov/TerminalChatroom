@@ -5,8 +5,8 @@ import threading
 
 from ClientThread import ClientThread, ClientStruct
 
-HOST = "127.0.0.1"
-PORT = 13000
+HOST = "0.0.0.0"
+PORT = 8080
 ClientsDatabase = ClientStruct()
 
 

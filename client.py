@@ -2,42 +2,76 @@ import socket
 from threading import Thread
 
 
-SERVER = "127.0.0.1"
-PORT = 13000
-PAYLOAD = 1024
-RUN = True  # переменная, которая должна быть общей для функций получения и отправки сообщений
+class Client:
 
+    def __init__(self, client_socket: socket.socket, server: str, port: int, payload=1024):
+        self.RUN = True  # переменная, которая прерывает процесс получения и отправки сообщений, будучи False
+        self.client = client_socket
+        self.SERVER = server
+        self.PORT = port
+        self.PAYLOAD = payload
 
-def receive_process(client):
-    global RUN
-    while RUN:
-        incoming = client.recv(PAYLOAD)
+    def client_run(self):
+        self.client.connect((self.SERVER, self.PORT))
 
-        if incoming == b"":  # проверка за флуд с сервера в случае его отключения. Да, приходят пустые штуки
-            try:
-                socket.socket().connect((SERVER, PORT)) # ЗАКРЫТЬ БЫ ЭТОТ СОКЕТ
-            except ConnectionRefusedError:
+        receive = Thread(target=self.receive_process, daemon=True)
+        receive.start()
+
+        while self.RUN is True:
+            message = self.__get_prompt__()
+
+            if message == "DISCONNECT":
+                self.disconnect()
+            elif message != "":
+                self.client.send(bytes(message, "utf-8"))
+
+    def server_is_alive(self):
+        s = socket.socket()
+        result = True
+        try:
+            s.connect((self.SERVER, self.PORT))
+        except ConnectionRefusedError:
+            result = False
+
+        s.close()
+        return result
+
+    def receive_process(self):
+        while self.RUN is True:
+            incoming = self.client.recv(self.PAYLOAD)
+
+            # Проверяем, жив ли сервер. Если он умер, пользователя заливает пустыми байтами.
+            # Тут сразу два условия, чтобы не спамить запросами на сервер
+            if incoming == b"" and self.server_is_alive() is False:
                 print("Server has just DIED!")
-                RUN = False
-        print(">>>" + incoming.decode())
+                self.RUN = False
+            else:
+                print(">>>" + incoming.decode())
+
+                if incoming == b'DISCONNECTED':
+                    print("You were disconnected. Press Ctrl+C.")
+                    self.RUN = False
+                    exit()
+
+    def __get_prompt__(self):
+        message = ""
+
+        try:
+            message = input()
+        except KeyboardInterrupt:
+            message = "DISCONNECT"
+
+        return message
+
+    def disconnect(self):
+        self.client.send(bytes("DISCONNECT", "utf-8"))
 
 
-def client_app_run():
-    global RUN  # в этой функции глобальный флаг устанавливается в 0, если пользователь хочет отключиться
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((SERVER, PORT))
-
-    receive = Thread(target=receive_process, daemon=True, args=(client,))
-    receive.start()
-
-    while RUN:
-        message = input()
-        client.send(bytes(message, 'UTF-8'))
-        if message == 'DISCONNECT':
-            response = client.recv(PAYLOAD).decode()
-            if response == "DISCONNECTED":
-                break
-            RUN = False
+def main():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client = Client(s, server='127.0.0.1', port=13000)
+    client.client_run()
 
 
-client_app_run()
+if __name__ == '__main__':
+    main()

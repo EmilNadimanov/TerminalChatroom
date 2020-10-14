@@ -1,4 +1,3 @@
-import threading
 import socket
 
 PAYLOAD = 1024
@@ -17,21 +16,20 @@ class ClientStruct:
 
     def send_everyone(self, message):
         if message != "":
-            print(message)
             for client in self.clients:
                 client.send(bytes(message, "utf-8"))
 
 
-class ClientThread(threading.Thread):
+class ClientThread:
     """
-    Класс для каждого потока, выделенного под одного клиента.
-    client_socket   ---  сокет клиента, полученный из модуля socket
-    client_address  ---  адрес и порт клиента, полученные из модуля socket
-    home_struct     ---  общая структура строго типа Clientstruct, разделяемая клиентами одного чата
+    Класс для описания потока взаимодействия с каждым клиентом.
+    client_socket   ---     сокет клиента, полученный из модуля socket
+    client_address  ---     адрес и порт клиента, полученные из socket.accept()
+    home_struct     ---     общая структура строго типа Clientstruct, общая для клиентов одного чата, позволяющая им
+                            принимать сообщения друг от друга
     """
 
     def __init__(self, client_socket: socket.socket, client_address, home_struct: ClientStruct):
-        threading.Thread.__init__(self)
 
         self.struct = home_struct
 
@@ -46,9 +44,11 @@ class ClientThread(threading.Thread):
         self.clientSocket.send(bytes("Hi! What is the name you go by?", "utf-8"))
         while True:
             input_name = self.clientSocket.recv(PAYLOAD).decode()
+
+            # вводится незанятое имя
             if input_name not in self.struct.nicknames:
                 self.clientSocket.send(bytes(f"Welcome to the chat, {input_name}!"
-                                             f" Type in \"DISCONNECT\" to leave this chat", "utf-8"))
+                                             " Type \"DISCONNECT\" to leave this chat", "utf-8"))
                 self.struct.nicknames.add(input_name)
                 return input_name
             else:
@@ -65,18 +65,20 @@ class ClientThread(threading.Thread):
 
     def run(self):
         """
-        Оверрайд одноимённого метода из суперкласса Thread.
         В цикле сервер принимает ввод клиента и перенаправляет его остальным участникам чата.
         """
         print("Connection from: ", self.clientAddress[0] + ':' + str(self.clientAddress[1]))
+        for client in self.struct.clients:
+            print(client)
         while True:
             data = self.clientSocket.recv(PAYLOAD)
             message = data.decode("utf-8")
 
-            if message == "DISCONNECT":  # пользователь хочет уйти
-                self.struct.send_everyone(self.nickname + " has left the chat")
+            if message == "DISCONNECT":  # пользователь хочет уйти - удаляем всё связанное с ним из базы
                 self.clientSocket.send(bytes("DISCONNECTED", "utf-8"))
                 self.__clear__()
+
+                self.struct.send_everyone(self.nickname + " has left the chat")
                 return
-            else:
+            elif message != "":
                 self.struct.send_everyone(self.nickname + ": " + message)

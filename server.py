@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import socket
+import threading
 
 from ClientThread import ClientThread, ClientStruct
 
@@ -10,7 +11,8 @@ ClientsDatabase = ClientStruct()
 
 
 def handle_client(client_socket, client_address):
-    ClientThread(client_socket, client_address, ClientsDatabase).start()
+    client_thread = ClientThread(client_socket, client_address, ClientsDatabase)
+    client_thread.run()
 
 
 def run():
@@ -20,7 +22,8 @@ def run():
     while True:
         server.listen(10)
         client_socket, client_address = server.accept()
-        handle_client(client_socket, client_address)
+
+        threading.Thread(target=handle_client, args=(client_socket, client_address), daemon=True).start()
 
 
 if __name__ == '__main__':

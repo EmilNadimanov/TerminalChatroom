@@ -20,6 +20,10 @@ class Client:
         self.PAYLOAD = payload
 
     def client_run(self):
+        """
+        Основной метод. Подключается к серверу, запускает в потоке процесс обработки получаемых данных.
+        В цикле обрабатывает ввод пользователя и направляет его на сервер.
+        """
         self.client.connect((self.SERVER_IP, self.PORT))
 
         receive = Thread(target=self.receive_process, daemon=True)
@@ -32,6 +36,9 @@ class Client:
                 self.client.send(bytes(message, "utf-8"))
 
     def server_is_alive(self):
+        """
+        Проверка, жив ли сервер. Выполняется попытка подключиться к нему из одноразового сокета.
+        """
         s = socket.socket()
         result = True
         try:
@@ -43,6 +50,10 @@ class Client:
         return result
 
     def receive_process(self):
+        """
+        Процедура, которая в цикле принимает данные от сервера и обрабатывает особые случаи: крах сервера и
+        отключение от сервера
+        """
         while self.RUN is True:
             incoming = self.client.recv(self.PAYLOAD)
 
@@ -61,6 +72,9 @@ class Client:
 
     @staticmethod
     def __get_prompt__():
+        """
+        Ввод из консоли с защитой от исключения в случае, если нажаты Ctrl+C или Ctrl+D
+        """
         try:
             message = input()
         except (EOFError, KeyboardInterrupt):

@@ -67,6 +67,9 @@ class ClientThread:
                 self.struct.send_everyone(self.nickname + ": " + message)
 
     def disconnect(self):
+        """
+        Отключить клиента от сервера и удалить все связанные с ним данные из базы
+        """
         self.clientSocket.send(bytes("DISCONNECTED", "utf-8"))
         self.__clear__()
 

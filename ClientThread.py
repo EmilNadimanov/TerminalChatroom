@@ -1,4 +1,5 @@
 import socket
+from threading import Lock
 
 PAYLOAD = 1024
 
@@ -9,15 +10,24 @@ class ClientStruct:
     Адрес и порт возвращаются методом socket.accept() вторым значением кортежа.
     ***
     Метод send_everyone отправляет сообщение, которое принимает как аргумент, всем клиентам чата, существующим в базе.
+    ***
+    Метод add_client обновляет словарь-базу данных, записывая туда нового клиента, защищая его как критическую секцию.
     """
     def __init__(self):
         self.clients = {}
         self.nicknames = set()
+        self.mutex = Lock()
 
     def send_everyone(self, message):
         if message != "":
             for client in self.clients:
                 client.send(bytes(message, "utf-8"))
+
+    def add_client(self, client: socket.socket, client_address):
+        self.mutex.acquire()
+        self.clients[client] = client_address
+        self.mutex.release()
+
 
 
 class ClientThread:
@@ -37,7 +47,7 @@ class ClientThread:
         self.clientAddress = client_address
         self.nickname = self.__set_nickname__()
 
-        home_struct.clients[client_socket] = client_address  # добавляем клиента в базу в конце __init__, чтобы
+        home_struct.add_client(client_socket, client_address)  # добавляем клиента в базу в конце __init__, чтобы
         #  не отвлекать его от инициализации сообщениями, приходящими в чат от других пользователей.
 
     def __set_nickname__(self):  # private-метод для инициализации имени пользователя в конструкторе.

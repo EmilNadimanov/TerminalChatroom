@@ -20,9 +20,7 @@ class Client:
         while self.RUN is True:
             message = self.__get_prompt__()
 
-            if message == "DISCONNECT":
-                self.disconnect()
-            elif message != "":
+            if message != "":
                 self.client.send(bytes(message, "utf-8"))
 
     def server_is_alive(self):
@@ -53,18 +51,14 @@ class Client:
                     self.RUN = False
                     exit()
 
-    def __get_prompt__(self):
-        message = ""
-
+    @staticmethod
+    def __get_prompt__():
         try:
             message = input()
-        except KeyboardInterrupt:
+        except KeyboardInterrupt or EOFError:
             message = "DISCONNECT"
 
         return message
-
-    def disconnect(self):
-        self.client.send(bytes("DISCONNECT", "utf-8"))
 
 
 def main():

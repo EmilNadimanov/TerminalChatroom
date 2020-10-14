@@ -55,7 +55,7 @@ class Client:
     def __get_prompt__():
         try:
             message = input()
-        except KeyboardInterrupt or EOFError:
+        except (EOFError, KeyboardInterrupt):
             message = "DISCONNECT"
 
         return message

@@ -19,11 +19,14 @@ def run():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind((HOST, PORT))
-    while True:
-        server.listen(10)
-        client_socket, client_address = server.accept()
+    try:
+        while True:
+            server.listen(10)
+            client_socket, client_address = server.accept()
 
-        threading.Thread(target=handle_client, args=(client_socket, client_address), daemon=True).start()
+            threading.Thread(target=handle_client, args=(client_socket, client_address), daemon=True).start()
+    except (KeyboardInterrupt, EOFError):
+        exit()
 
 
 if __name__ == '__main__':

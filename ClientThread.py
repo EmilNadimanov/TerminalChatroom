@@ -55,6 +55,7 @@ class ClientThread:
         Если клиент хочет выйти из чата, это тоже обрабатывается в цикле.
         """
         print("Connection from: ", self.clientAddress[0] + ':' + str(self.clientAddress[1]))
+        self.struct.send_everyone(self.nickname + " Has entered the char.")
 
         while True:
             data = self.clientSocket.recv(PAYLOAD)
@@ -64,16 +65,17 @@ class ClientThread:
                 self.disconnect()
                 return
             elif message != "":
-                self.struct.send_everyone(self.nickname + ": " + message)
+                self.struct.send_everyone(">>>" + self.nickname + ": " + message)
 
     def disconnect(self):
         """
         Отключить клиента от сервера и удалить все связанные с ним данные из базы
         """
-        self.clientSocket.send(bytes("DISCONNECTED", "utf-8"))
         self.__clear__()
+        self.clientSocket.send(bytes("DISCONNECTED", "utf-8"))
 
-        self.struct.send_everyone(self.nickname + " has left the chat")
+        if self.nickname is not None:
+            self.struct.send_everyone(self.nickname + " has left the chat")
 
     def __set_nickname__(self):  # private-метод для инициализации имени пользователя в конструкторе.
         self.clientSocket.send(bytes("Hi! What is the name you go by?", "utf-8"))
@@ -83,25 +85,22 @@ class ClientThread:
             # пользователь решил выйти во время ввода имени
             if input_name == "DISCONNECT":
                 self.clientSocket.send(bytes("DISCONNECTED", "utf-8"))
-                self.__clear__(at_login=True)
+                self.__clear__()
                 exit()
 
             # Допустимо лишь незанятое имя
             elif input_name not in self.struct.nicknames:
-                self.clientSocket.send(bytes(f"Welcome to the chat, {input_name}!"
-                                             " Type \"DISCONNECT\" to leave this chat", "utf-8"))
+                self.clientSocket.send(bytes("Type \"DISCONNECT\" to leave this chat", "utf-8"))
                 self.struct.nicknames.add(input_name)  # в множество ников из базы добавляется новое имя
                 return input_name
             else:
                 self.clientSocket.send(bytes(f"Name {input_name} is taken, try another one.", "utf-8"))
 
-    def __clear__(self, at_login=False):
+    def __clear__(self):
         """
         Функция с говорящим названиеем: база клиентов очищается от данных удаляемого пользователя.
         Закрывается сокет, привязанный к клиенту.
-        Флаг at_login служит для цели применений в случае, если выйти нужно на этапе ввода имени
         """
-        if not at_login:
-            self.struct.clients.pop(self.clientSocket)
+        self.struct.clients.pop(self.clientSocket)
+        if self.nickname is not None:
             self.struct.nicknames.remove(self.nickname)
-        self.clientSocket.close()

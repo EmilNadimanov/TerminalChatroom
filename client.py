@@ -32,7 +32,7 @@ class Client:
         while self.RUN is True:
             message = self.__get_prompt__()
 
-            if message != "":
+            if message != "" and self.RUN is True:
                 self.client.send(bytes(message, "utf-8"))
 
     def server_is_alive(self):
@@ -63,7 +63,7 @@ class Client:
                 print("Server has just DIED!")
                 self.RUN = False
             else:
-                print(">>>" + incoming.decode())
+                print(incoming.decode())
 
                 if incoming == b'DISCONNECTED':
                     print("You were disconnected. Press Ctrl+C.")
